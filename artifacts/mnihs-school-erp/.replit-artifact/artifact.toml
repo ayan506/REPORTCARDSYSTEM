@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "MNIHS School ERP"
+description = "A role-based school result and report-card management system for M.N.I. Higher Secondary School, with academic session archiving, student promotion, analytics, and a coordinate-accurate report-card overlay designer."
+version = "1.0.0"
+id = "artifacts/mnihs-school-erp"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 24208
+
+[services.development]
+run = "pnpm --filter @workspace/mnihs-school-erp run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/mnihs-school-erp", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/mnihs-school-erp/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "24208"
+BASE_PATH = "/"

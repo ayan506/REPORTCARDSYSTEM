@@ -1,22 +1,27 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: MNIHS school result and report card management API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
-    description: Health operations
+  - name: auth
+  - name: dashboard
+  - name: students
+  - name: sessions
+  - name: teachers
+  - name: templates
+  - name: settings
+  - name: public
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,13 +29,758 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Sign in as principal or teacher
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: Signed-in user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionUser"
+        "401":
+          description: Invalid credentials
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Sign out
+      responses:
+        "204":
+          description: Signed out
+  /auth/me:
+    get:
+      operationId: getCurrentUser
+      tags: [auth]
+      summary: Get current session user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionUser"
+        "401":
+          description: Not signed in
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Get dashboard metrics
+      parameters:
+        - $ref: "#/components/parameters/SessionQuery"
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+  /public/results/{studentId}:
+    get:
+      operationId: getPublicResult
+      tags: [public]
+      summary: Get a student's public digital result
+      parameters:
+        - $ref: "#/components/parameters/StudentId"
+      responses:
+        "200":
+          description: Public digital result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicResult"
+        "404":
+          description: Result not found
+  /students:
+    get:
+      operationId: listStudents
+      tags: [students]
+      summary: List students
+      parameters:
+        - $ref: "#/components/parameters/SessionQuery"
+        - name: className
+          in: query
+          schema: { type: string }
+        - name: status
+          in: query
+          schema: { type: string }
+        - name: search
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: Students
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Student"
+    post:
+      operationId: createStudent
+      tags: [students]
+      summary: Create a student
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StudentInput"
+      responses:
+        "201":
+          description: Student created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Student"
+  /students/{studentId}:
+    patch:
+      operationId: updateStudent
+      tags: [students]
+      summary: Update a student
+      parameters:
+        - $ref: "#/components/parameters/StudentId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StudentUpdate"
+      responses:
+        "200":
+          description: Updated student
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Student"
+  /students/{studentId}/marks:
+    get:
+      operationId: getStudentMarks
+      tags: [students]
+      summary: Get marks for a student
+      parameters:
+        - $ref: "#/components/parameters/StudentId"
+      responses:
+        "200":
+          description: Student marks
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MarksSheet"
+    put:
+      operationId: saveStudentMarks
+      tags: [students]
+      summary: Save marks for a student
+      parameters:
+        - $ref: "#/components/parameters/StudentId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MarksSheetInput"
+      responses:
+        "200":
+          description: Saved marks
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MarksSheet"
+  /teachers:
+    get:
+      operationId: listTeachers
+      tags: [teachers]
+      summary: List teacher accounts
+      responses:
+        "200":
+          description: Teacher accounts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Teacher"
+    post:
+      operationId: createTeacher
+      tags: [teachers]
+      summary: Create a teacher account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TeacherInput"
+      responses:
+        "201":
+          description: Teacher account created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Teacher"
+  /teachers/{teacherId}/assignment:
+    patch:
+      operationId: updateTeacherAssignment
+      tags: [teachers]
+      summary: Update a teacher's assigned classes
+      parameters:
+        - $ref: "#/components/parameters/TeacherId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TeacherAssignmentInput"
+      responses:
+        "200":
+          description: Updated teacher
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Teacher"
+  /sessions:
+    get:
+      operationId: listSessions
+      tags: [sessions]
+      summary: List academic sessions
+      responses:
+        "200":
+          description: Academic sessions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AcademicSession"
+    post:
+      operationId: startAcademicSession
+      tags: [sessions]
+      summary: Archive the current session and start a new academic session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SessionStartInput"
+      responses:
+        "201":
+          description: Session created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AcademicSession"
+  /sessions/{sessionId}/promote:
+    post:
+      operationId: promoteStudents
+      tags: [sessions]
+      summary: Promote students and reset new-session result data
+      parameters:
+        - $ref: "#/components/parameters/SessionId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PromotionInput"
+      responses:
+        "200":
+          description: Promotion result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PromotionResult"
+  /sessions/{sessionId}/records:
+    get:
+      operationId: getHistoricalRecords
+      tags: [sessions]
+      summary: Open a historical session in read-only mode
+      parameters:
+        - $ref: "#/components/parameters/SessionId"
+      responses:
+        "200":
+          description: Historical session records
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HistoricalRecords"
+  /templates:
+    get:
+      operationId: listTemplates
+      tags: [templates]
+      summary: List report-card templates
+      responses:
+        "200":
+          description: Templates
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ReportTemplate"
+    post:
+      operationId: createTemplate
+      tags: [templates]
+      summary: Create a report-card template
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TemplateInput"
+      responses:
+        "201":
+          description: Template created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReportTemplate"
+  /templates/{templateId}:
+    patch:
+      operationId: updateTemplate
+      tags: [templates]
+      summary: Save template coordinates and styles
+      parameters:
+        - $ref: "#/components/parameters/TemplateId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TemplateUpdate"
+      responses:
+        "200":
+          description: Updated template
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReportTemplate"
+  /settings:
+    get:
+      operationId: getSchoolSettings
+      tags: [settings]
+      summary: Get school and result settings
+      responses:
+        "200":
+          description: School settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SchoolSettings"
+    patch:
+      operationId: updateSchoolSettings
+      tags: [settings]
+      summary: Update school and result settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SchoolSettingsInput"
+      responses:
+        "200":
+          description: Updated settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SchoolSettings"
 components:
+  parameters:
+    SessionQuery:
+      name: sessionId
+      in: query
+      required: true
+      schema: { type: integer }
+    StudentId:
+      name: studentId
+      in: path
+      required: true
+      schema: { type: integer }
+    SessionId:
+      name: sessionId
+      in: path
+      required: true
+      schema: { type: integer }
+    TemplateId:
+      name: templateId
+      in: path
+      required: true
+      schema: { type: integer }
+    TeacherId:
+      name: teacherId
+      in: path
+      required: true
+      schema: { type: integer }
   schemas:
     HealthStatus:
       type: object
+      required: [status]
       properties:
-        status:
-          type: string
-      required:
-        - status
-
+        status: { type: string }
+    LoginInput:
+      type: object
+      required: [username, password, role]
+      properties:
+        username: { type: string, minLength: 1 }
+        password: { type: string, minLength: 1 }
+        role: { type: string, enum: [principal, teacher] }
+    SessionUser:
+      type: object
+      required: [id, name, username, role]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        username: { type: string }
+        role: { type: string, enum: [principal, teacher] }
+        assignedClasses:
+          type: array
+          items: { type: string }
+    DashboardSummary:
+      type: object
+      required: [registeredStudents, completedMarks, averagePercentage, activeTeachers, classProgress, topPerformers, performanceBrackets, topByClass, bottomByClass, schoolTopTen, thresholds]
+      properties:
+        registeredStudents: { type: integer }
+        completedMarks: { type: integer }
+        averagePercentage: { type: number }
+        activeTeachers: { type: integer }
+        classProgress:
+          type: array
+          items:
+            $ref: "#/components/schemas/ClassProgress"
+        topPerformers:
+          type: array
+          items:
+            $ref: "#/components/schemas/TopPerformer"
+        performanceBrackets:
+          type: array
+          items:
+            $ref: "#/components/schemas/PerformanceBracket"
+        topByClass:
+          type: array
+          items:
+            $ref: "#/components/schemas/TopPerformer"
+        bottomByClass:
+          type: array
+          items:
+            $ref: "#/components/schemas/TopPerformer"
+        schoolTopTen:
+          type: array
+          items:
+            $ref: "#/components/schemas/TopPerformer"
+        thresholds:
+          type: array
+          items:
+            $ref: "#/components/schemas/PerformanceThreshold"
+    ClassProgress:
+      type: object
+      required: [className, section, percentage]
+      properties:
+        className: { type: string }
+        section: { type: string }
+        percentage: { type: number }
+        completed: { type: integer }
+        total: { type: integer }
+    TopPerformer:
+      type: object
+      required: [studentName, className, section, percentage, position]
+      properties:
+        studentName: { type: string }
+        className: { type: string }
+        section: { type: string }
+        percentage: { type: number }
+        position: { type: integer }
+    PerformanceBracket:
+      type: object
+      required: [label, count, threshold]
+      properties:
+        label: { type: string }
+        count: { type: integer }
+        threshold: { type: string }
+    PerformanceThreshold:
+      type: object
+      required: [rank, minimumPercentage, label]
+      properties:
+        rank: { type: integer }
+        minimumPercentage: { type: number }
+        label: { type: string }
+    Student:
+      type: object
+      required: [id, sessionId, name, fatherName, motherName, srNumber, rollNumber, className, section, status]
+      properties:
+        id: { type: integer }
+        sessionId: { type: integer }
+        name: { type: string }
+        fatherName: { type: string }
+        motherName: { type: string }
+        srNumber: { type: string }
+        admissionNumber: { type: string }
+        rollNumber: { type: string }
+        dob: { type: string }
+        address: { type: string }
+        className: { type: string }
+        section: { type: string }
+        photoPath: { type: ["string", "null"] }
+        status: { type: string, enum: [completed, pending] }
+        percentage: { type: ["number", "null"] }
+        position: { type: ["integer", "null"] }
+        qrCode: { type: string }
+    StudentInput:
+      type: object
+      required: [sessionId, name, fatherName, motherName, srNumber, rollNumber, className, section]
+      properties:
+        sessionId: { type: integer }
+        name: { type: string }
+        fatherName: { type: string }
+        motherName: { type: string }
+        srNumber: { type: string }
+        admissionNumber: { type: string }
+        rollNumber: { type: string }
+        dob: { type: string }
+        address: { type: string }
+        className: { type: string }
+        section: { type: string }
+        photoPath: { type: ["string", "null"] }
+    StudentUpdate:
+      type: object
+      properties:
+        name: { type: string }
+        fatherName: { type: string }
+        motherName: { type: string }
+        srNumber: { type: string }
+        admissionNumber: { type: string }
+        rollNumber: { type: string }
+        dob: { type: string }
+        address: { type: string }
+        className: { type: string }
+        section: { type: string }
+        photoPath: { type: ["string", "null"] }
+    MarkRow:
+      type: object
+      required: [subject, quarterlyOne, halfYearly, quarterlyTwo, annual]
+      properties:
+        subject: { type: string }
+        quarterlyOne: { type: number }
+        halfYearly: { type: number }
+        quarterlyTwo: { type: number }
+        annual: { type: number }
+        maxQuarterlyOne: { type: number }
+        maxHalfYearly: { type: number }
+        maxQuarterlyTwo: { type: number }
+        maxAnnual: { type: number }
+    MarksSheetInput:
+      type: object
+      required: [rows]
+      properties:
+        rows:
+          type: array
+          items:
+            $ref: "#/components/schemas/MarkRow"
+        attendance: { type: string }
+        conduct: { type: string }
+    MarksSheet:
+      allOf:
+        - $ref: "#/components/schemas/MarksSheetInput"
+        - type: object
+          required: [totalObtained, totalMaximum, percentage, grade, resultStatus, position]
+          properties:
+            totalObtained: { type: number }
+            totalMaximum: { type: number }
+            percentage: { type: number }
+            grade: { type: string }
+            resultStatus: { type: string }
+            position: { type: integer }
+    Teacher:
+      type: object
+      required: [id, name, username, assignedClasses, status]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        username: { type: string }
+        assignedClasses:
+          type: array
+          items: { type: string }
+        status: { type: string, enum: [active, inactive] }
+    TeacherInput:
+      type: object
+      required: [name, username, password, assignedClasses]
+      properties:
+        name: { type: string }
+        username: { type: string }
+        password: { type: string, minLength: 8 }
+        assignedClasses:
+          type: array
+          items: { type: string }
+    TeacherAssignmentInput:
+      type: object
+      required: [assignedClasses]
+      properties:
+        assignedClasses:
+          type: array
+          items: { type: string }
+    AcademicSession:
+      type: object
+      required: [id, label, status, studentCount, completedCount, readOnly]
+      properties:
+        id: { type: integer }
+        label: { type: string }
+        status: { type: string, enum: [active, archived, upcoming] }
+        studentCount: { type: integer }
+        completedCount: { type: integer }
+        readOnly: { type: boolean }
+        archivedAt: { type: ["string", "null"] }
+    SessionStartInput:
+      type: object
+      required: [label, promotePass, keepFailed, keepAssignments]
+      properties:
+        label: { type: string }
+        promotePass: { type: boolean }
+        keepFailed: { type: boolean }
+        keepAssignments: { type: boolean }
+        manualReview: { type: boolean }
+    PromotionInput:
+      type: object
+      required: [promotePass, keepFailed, keepAssignments]
+      properties:
+        promotePass: { type: boolean }
+        keepFailed: { type: boolean }
+        keepAssignments: { type: boolean }
+        manualReview: { type: boolean }
+    PromotionResult:
+      type: object
+      required: [promoted, kept, manualReview, backupCreated]
+      properties:
+        promoted: { type: integer }
+        kept: { type: integer }
+        manualReview: { type: integer }
+        backupCreated: { type: boolean }
+    HistoricalRecords:
+      type: object
+      required: [session, students, topPerformers, subjectAnalysis]
+      properties:
+        session:
+          $ref: "#/components/schemas/AcademicSession"
+        students:
+          type: array
+          items:
+            $ref: "#/components/schemas/Student"
+        topPerformers:
+          type: array
+          items:
+            $ref: "#/components/schemas/TopPerformer"
+        subjectAnalysis:
+          type: array
+          items:
+            $ref: "#/components/schemas/SubjectAnalysis"
+    SubjectAnalysis:
+      type: object
+      required: [subject, average, highest]
+      properties:
+        subject: { type: string }
+        average: { type: number }
+        highest: { type: number }
+    OverlayField:
+      type: object
+      required: [id, label, source, x, y, width, height, fontSize, fontFamily, align, fontWeight]
+      properties:
+        id: { type: string }
+        label: { type: string }
+        source: { type: string }
+        x: { type: number }
+        y: { type: number }
+        width: { type: number }
+        height: { type: number }
+        fontSize: { type: number }
+        fontFamily: { type: string }
+        align: { type: string, enum: [left, center, right] }
+        verticalAlign: { type: string, enum: [top, middle, bottom] }
+        fontWeight: { type: string, enum: [normal, bold] }
+        visible: { type: boolean }
+        color: { type: string }
+    ReportTemplate:
+      type: object
+      required: [id, name, backgroundPath, width, height, fields, active]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        backgroundPath: { type: string }
+        width: { type: number }
+        height: { type: number }
+        fields:
+          type: array
+          items:
+            $ref: "#/components/schemas/OverlayField"
+        active: { type: boolean }
+        updatedAt: { type: string }
+    TemplateInput:
+      type: object
+      required: [name, backgroundPath, width, height, fields]
+      properties:
+        name: { type: string }
+        backgroundPath: { type: string }
+        width: { type: number }
+        height: { type: number }
+        fields:
+          type: array
+          items:
+            $ref: "#/components/schemas/OverlayField"
+    TemplateUpdate:
+      type: object
+      properties:
+        name: { type: string }
+        backgroundPath: { type: string }
+        fields:
+          type: array
+          items:
+            $ref: "#/components/schemas/OverlayField"
+    SchoolSettings:
+      type: object
+      required: [schoolName, udiseCode, establishedYear, address, logoPath, reportDate, passPercentage, firstMinimum, secondMinimum, thirdMinimum, qrColor, marksColor]
+      properties:
+        schoolName: { type: string }
+        udiseCode: { type: string }
+        establishedYear: { type: string }
+        address: { type: string }
+        logoPath: { type: string }
+        reportDate: { type: string }
+        passPercentage: { type: number }
+        firstMinimum: { type: number }
+        secondMinimum: { type: number }
+        thirdMinimum: { type: number }
+        qrColor: { type: string }
+        marksColor: { type: string }
+    SchoolSettingsInput:
+      type: object
+      properties:
+        schoolName: { type: string }
+        udiseCode: { type: string }
+        establishedYear: { type: string }
+        address: { type: string }
+        logoPath: { type: string }
+        reportDate: { type: string }
+        passPercentage: { type: number }
+        firstMinimum: { type: number }
+        secondMinimum: { type: number }
+        thirdMinimum: { type: number }
+        qrColor: { type: string }
+        marksColor: { type: string }
+    PublicResult:
+      type: object
+      required: [school, student, marks, template, digitalCopyText]
+      properties:
+        school:
+          $ref: "#/components/schemas/SchoolSettings"
+        student:
+          $ref: "#/components/schemas/Student"
+        marks:
+          $ref: "#/components/schemas/MarksSheet"
+        template:
+          $ref: "#/components/schemas/ReportTemplate"
+        digitalCopyText: { type: string }
